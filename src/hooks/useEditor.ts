@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
-import type { EditorState, Status } from '../types'
+import type { EditorState } from '../types'
 
-const initial: EditorState = {
+const makeInitial = (): EditorState => ({
   file: null,
   videoWidth: 0,
   videoHeight: 0,
@@ -12,14 +12,14 @@ const initial: EditorState = {
   cropH: 0,
   trimStart: 0,
   trimEnd: 0,
-  status: 'idle' as Status,
+  status: 'idle',
   progress: 0,
   outputUrl: null,
   errorMsg: null,
-}
+})
 
 export function useEditor() {
-  const [state, setState] = useState<EditorState>(initial)
+  const [state, setState] = useState<EditorState>(makeInitial)
 
   const setFile = useCallback((file: File) => {
     setState(s => ({ ...s, file, status: 'loading', outputUrl: null, errorMsg: null }))
@@ -62,7 +62,7 @@ export function useEditor() {
   }, [])
 
   const setError = useCallback((errorMsg: string) => {
-    setState(s => ({ ...s, status: 'error', errorMsg }))
+    setState(s => ({ ...s, status: 'error', errorMsg, outputUrl: null }))
   }, [])
 
   return { state, setFile, setVideoDimensions, setCrop, setTrim, setProcessing, setProgress, setDone, setError }
