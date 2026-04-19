@@ -19,6 +19,7 @@ export default defineConfig({
     exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
   },
   test: {
+    globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/setupTests.ts'],
   },
