@@ -20,7 +20,8 @@ export function TrimTimeline({ duration, trimStart, trimEnd, onTrimChange }: Pro
   const dragging = useRef<'start' | 'end' | null>(null)
 
   const toTime = useCallback((clientX: number): number => {
-    const rect = trackRef.current!.getBoundingClientRect()
+    if (!trackRef.current) return 0
+    const rect = trackRef.current.getBoundingClientRect()
     const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
     return frac * duration
   }, [duration])
@@ -43,8 +44,8 @@ export function TrimTimeline({ duration, trimStart, trimEnd, onTrimChange }: Pro
 
   const handlePointerUp = useCallback(() => { dragging.current = null }, [])
 
-  const startPct = (trimStart / duration) * 100
-  const endPct = (trimEnd / duration) * 100
+  const startPct = duration > 0 ? (trimStart / duration) * 100 : 0
+  const endPct = duration > 0 ? (trimEnd / duration) * 100 : 100
 
   const thumbStyle: React.CSSProperties = {
     position: 'absolute',
