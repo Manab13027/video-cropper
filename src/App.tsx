@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useEditor } from './hooks/useEditor'
 import { FileDropZone } from './components/FileDropZone'
 import { VideoPreview } from './components/VideoPreview'
@@ -8,9 +8,7 @@ import { loadFFmpeg, cropAndTrim } from './lib/ffmpeg'
 
 export default function App() {
   const { state, setFile, setVideoDimensions, setCrop, setTrim, setProcessing, setProgress, setDone, setError } = useEditor()
-  const [isolated, setIsolated] = useState(true)
-
-  useEffect(() => { setIsolated(crossOriginIsolated) }, [])
+  const [isolated] = useState(() => crossOriginIsolated)
 
   const handleFile = useCallback(async (file: File) => {
     setFile(file)
@@ -35,7 +33,9 @@ export default function App() {
         state.trimEnd,
         setProgress,
       )
-      setDone(URL.createObjectURL(blob))
+      const url = URL.createObjectURL(blob)
+      if (state.outputUrl) URL.revokeObjectURL(state.outputUrl)
+      setDone(url)
     } catch (e) {
       setError(String(e))
     }

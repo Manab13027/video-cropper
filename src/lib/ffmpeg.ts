@@ -63,5 +63,5 @@ export async function cropAndTrim(
   const data = await ffmpeg.readFile('output.mp4')
   await ffmpeg.deleteFile('output.mp4').catch(() => {})
 
-  return new Blob([data as Uint8Array], { type: 'video/mp4' })
+  return new Blob([data as Uint8Array<ArrayBuffer>], { type: 'video/mp4' })
 }

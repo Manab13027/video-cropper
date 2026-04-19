@@ -13,7 +13,7 @@ export function FileDropZone({ onFile }: Props) {
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) onFile(file)
+    if (file && file.type.startsWith('video/')) onFile(file)
   }, [onFile])
 
   return (
