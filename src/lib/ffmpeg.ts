@@ -1,5 +1,5 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg'
-import { fetchFile, toBlobURL } from '@ffmpeg/util'
+import { toBlobURL } from '@ffmpeg/util'
 
 let ffmpeg: FFmpeg | null = null
 let loadPromise: Promise<void> | null = null
@@ -35,19 +35,20 @@ export async function cropAndTrim(
 ): Promise<Blob> {
   if (!ffmpeg?.loaded) throw new Error('FFmpeg not loaded')
 
-  const ext = file.name.split('.').pop() || 'mp4'
-  const inputName = `input.${ext}`
-
-  await ffmpeg.writeFile(inputName, await fetchFile(file))
+  // Mount the File directly into the WASM virtual FS without copying it into memory.
+  // This avoids the OOM crash caused by fetchFile() + writeFile() doubling large file sizes in RAM.
+  const mountPoint = '/input'
+  await ffmpeg.mount('WORKERFS', { files: [file] }, mountPoint)
+  const inputPath = `${mountPoint}/${file.name}`
 
   const onProg = ({ progress }: { progress: number }) => onProgress(Math.round(progress * 100))
   ffmpeg.on('progress', onProg)
 
   try {
     await ffmpeg.exec([
-      '-i', inputName,
-      '-ss', String(trimStart),
-      '-to', String(trimEnd),
+      '-ss', String(trimStart),          // input seeking: seek before decoding (fast, no frame decode pre-trim)
+      '-i', inputPath,
+      '-t', String(trimEnd - trimStart), // duration from seek point (unambiguous with input seeking)
       '-vf', `crop=${cropW}:${cropH}:${cropX}:${cropY}`,
       '-c:v', 'libx264',
       '-preset', 'fast',
@@ -57,7 +58,7 @@ export async function cropAndTrim(
     ])
   } finally {
     ffmpeg.off('progress', onProg)
-    await ffmpeg.deleteFile(inputName).catch(() => {})
+    await ffmpeg.unmount(mountPoint).catch(() => {})
   }
 
   const data = await ffmpeg.readFile('output.mp4')
