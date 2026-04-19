@@ -15,7 +15,10 @@ export async function loadFFmpeg(): Promise<void> {
       coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript'),
       wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm'),
     })
-  })()
+  })().catch(err => {
+    loadPromise = null
+    throw err
+  })
 
   return loadPromise
 }
@@ -40,24 +43,25 @@ export async function cropAndTrim(
   const onProg = ({ progress }: { progress: number }) => onProgress(Math.round(progress * 100))
   ffmpeg.on('progress', onProg)
 
-  const args = [
-    '-i', inputName,
-    '-ss', String(trimStart),
-    '-to', String(trimEnd),
-    '-vf', `crop=${cropW}:${cropH}:${cropX}:${cropY}`,
-    '-c:v', 'libx264',
-    '-preset', 'fast',
-    '-crf', '23',
-    '-c:a', 'aac',
-    'output.mp4',
-  ]
-  await ffmpeg.exec(args)
-
-  ffmpeg.off('progress', onProg)
+  try {
+    await ffmpeg.exec([
+      '-i', inputName,
+      '-ss', String(trimStart),
+      '-to', String(trimEnd),
+      '-vf', `crop=${cropW}:${cropH}:${cropX}:${cropY}`,
+      '-c:v', 'libx264',
+      '-preset', 'fast',
+      '-crf', '23',
+      '-c:a', 'aac',
+      'output.mp4',
+    ])
+  } finally {
+    ffmpeg.off('progress', onProg)
+    await ffmpeg.deleteFile(inputName).catch(() => {})
+  }
 
   const data = await ffmpeg.readFile('output.mp4')
-  await ffmpeg.deleteFile(inputName)
-  await ffmpeg.deleteFile('output.mp4')
+  await ffmpeg.deleteFile('output.mp4').catch(() => {})
 
   return new Blob([data as Uint8Array], { type: 'video/mp4' })
 }
